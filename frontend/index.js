@@ -491,7 +491,7 @@ function PastureMapApp() {
         const totalAcres = totalAcresField ? record.getCellValue(totalAcresField) : null;
         const grazeableAcresRaw = grazeableAcresField ? record.getCellValue(grazeableAcresField) : null;
         const foragePerAcre = foragePerAcreField ? record.getCellValue(foragePerAcreField) : null;
-        const pastureUtilizationRaw = pastureUtilizationField ? record.getCellValueAsString(pastureUtilizationField) : null;
+        const pastureUtilizationRaw = pastureUtilizationField ? record.getCellValue(pastureUtilizationField) : null;
 
         // Get styling fields
         const pastureColor = pastureColorField ? record.getCellValue(pastureColorField) : '#22b14c';
@@ -511,14 +511,21 @@ function PastureMapApp() {
         // Convert percentage (decimal) to percentage display
         const formatPercentage = (val) => {
           if (val === null || val === undefined) return 'N/A';
-          // Handle LOOKUP field type (returns array)
+          // Handle LOOKUP field type (returns array of objects with linkedRecordId and value)
           if (Array.isArray(val) && val.length > 0) {
             const firstVal = val[0];
+            // Check if it's an object with a 'value' property (LOOKUP field structure)
+            if (typeof firstVal === 'object' && firstVal !== null && 'value' in firstVal) {
+              const num = firstVal.value;
+              if (typeof num === 'number') {
+                return num <= 1 ? `${Math.round(num * 100)}%` : `${Math.round(num)}%`;
+              }
+            }
+            // Handle simple number in array
             if (typeof firstVal === 'number') {
-              // If number is between 0-1, treat as decimal (e.g., 0.32 -> 32%)
-              // If number is > 1, treat as already percentage (e.g., 32 -> 32%)
               return firstVal <= 1 ? `${Math.round(firstVal * 100)}%` : `${Math.round(firstVal)}%`;
             }
+            // Handle string in array
             if (typeof firstVal === 'string') {
               const num = parseFloat(firstVal);
               if (!isNaN(num)) {
@@ -526,6 +533,7 @@ function PastureMapApp() {
               }
               return firstVal;
             }
+            // Handle SINGLE_SELECT in array
             if (typeof firstVal === 'object' && firstVal.name) return firstVal.name;
             return String(firstVal);
           }
